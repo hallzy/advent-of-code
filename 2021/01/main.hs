@@ -20,4 +20,6 @@ solve2 input = countIncrease 0 input
 main :: IO ()
 main = do
     contents <- readFile "input.txt"
-    putStrLn $ show $ solve2 $ map read $ lines contents
+    let input = map read $ lines contents
+    putStrLn $ "Part 1: " ++ (show $ solve1 input)
+    putStrLn $ "Part 2: " ++ (show $ solve2 input)
