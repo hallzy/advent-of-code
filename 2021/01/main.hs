@@ -1,4 +1,3 @@
--- Part 1
 solve1 :: [Int] -> Int
 solve1 input = countIncrease 0 input
     where
@@ -7,7 +6,6 @@ solve1 input = countIncrease 0 input
             | otherwise = countIncrease count (y : ns)
         countIncrease count _ = count
 
--- Part 2
 solve2 :: [Int] -> Int
 solve2 input = countIncrease 0 input
     where
@@ -17,9 +15,21 @@ solve2 input = countIncrease 0 input
         countIncrease count _ = count
 
 
+betterSolution1 :: [Int] -> Int
+betterSolution1 xs = count True $ zipWith (<) xs (tail xs)
+    where
+        count needle haystack = length $ filter (== needle) haystack
+
+betterSolution2 :: [Int] -> Int
+betterSolution2 xs@(_:ys@(_:zs)) = betterSolution1 $ zipWith3 (\x y z -> sum [x,y,z]) xs ys zs
+
+
 main :: IO ()
 main = do
     contents <- readFile "input.txt"
     let input = map read $ lines contents
     putStrLn $ "Part 1: " ++ (show $ solve1 input)
     putStrLn $ "Part 2: " ++ (show $ solve2 input)
+    putStrLn ""
+    putStrLn $ "Better 1: " ++ (show $ betterSolution1 input)
+    putStrLn $ "Better 2: " ++ (show $ betterSolution2 input)
