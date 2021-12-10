@@ -18,46 +18,87 @@ isUniqueSize str = len == 2 || len == 4 || len == 3 || len == 7
         len = length str
 
 uniqueFind :: Int -> [String] -> String
-uniqueFind length (x:xs)
-    | length x == length = x
-    | otherwise     = uniqueFind xs
+uniqueFind len (x:xs)
+    | length x == len = x
+    | otherwise          = uniqueFind len xs
 
 permuteFind :: Int -> String -> [String] -> String
-permuteFind length toPermute (x:xs)
-    | length x == length && x `elem` permutations toPermute = x
-    | otherwise     = permuteFind length toPermute xs
+permuteFind _ _ [] = error "idk"
+permuteFind len toPermute (x:xs)
+    | length x == len && (all (\p -> p `elem` x) toPermute) = x
+    | otherwise = permuteFind len toPermute xs
 
-permuteNotFind :: Int -> String -> [String] -> String
-permuteNotFind length toPermute (x:xs)
-    | length x == length && not $ x `elem` permutations toPermute = x
-    | otherwise     = permuteNotFind length toPermute xs
+getFive :: String -> String -> String -> String
+getFive primary secondary four
+   | count == 3 = primary
+   | otherwise = secondary
+   where
+      count = length $ filter ((== 2) . length) $ group $ sort $ primary ++ four
 
-permuteFindAllOf :: Int -> [String] -> [String] -> String
-permuteFindAllOf length toPermute (x:xs)
-    | length x == length && not $ x `elem` allPermutations toPermute = x
-    | otherwise     = permuteFindAllOf length toPermute xs
-    where
-        allPermutations [] = []
-        allPermutations (x:xs) = permutations x ++ allPermutations xs
+dropStrings :: [String] -> [String] -> [String]
+dropStrings _ [] = []
+dropStrings toDrop (x:xs)
+   | x `elem` toDrop = dropStrings toDrop xs
+   | otherwise = x : dropStrings toDrop xs
 
-find' :: Int -> [String] -> String
-find' numToFind xs
-    | numToFind == 0 = uniqueFind 6 xs  -- Only 6 character long value left after several others have already been found
-    | numToFind == 1 = uniqueFind 2 xs
-    | numToFind == 2 = undefined
-    | numToFind == 3 = permuteFind 5 (find' 1 xs) xs
-    | numToFind == 4 = uniqueFind 4 xs
-    | numToFind == 5 = undefined
-    | numToFind == 6 = permuteNotFind 6 (find' 1 xs) xs
-    | numToFind == 7 = uniqueFind 3 xs
-    | numToFind == 8 = uniqueFind 7 xs
-    | numToFind == 9 = permuteFind 6 (find' 4 xs) xs
+find' :: [String] -> [(Char, [String])]
+find' xs = do
+   -- 1, 4, 7, and 8 all have unique lengths, so they can be easily deduced
+   -- based on the length of the string
+   let one   = uniqueFind 2 xs
+   let four  = uniqueFind 4 xs
+   let seven = uniqueFind 3 xs
+   let eight = uniqueFind 7 xs
 
-inputToTuples :: [String] -> [(Int, String)]
-inputToTuples [] = []
-inputToTuples (x:xs) = (-1, x) : inputToTuples xs
+   let xs2 = dropStrings [one, four, seven, eight] xs
 
-deduce :: [(Int, String)] -> [(Int, String)]
+   -- 9 uses 6 segments, and is the only 6 segment value that shares all the
+   -- same segments as a 4
+   let nine = permuteFind 6 four xs2
+   let xs3 = dropStrings [nine] xs2
+
+   -- 0 is a 6 segment value and after figuring out 9, it is the only 6 segment
+   -- value to share all the segments of a 1
+   let zero = permuteFind 6 one xs3
+   let xs4 = dropStrings [zero] xs3
+
+   -- 6 is a 6 segment value and is the only 6 segment value remaining after 9
+   -- and 0
+   let six = uniqueFind 6 xs4
+   let xs5 = dropStrings [six] xs4
+
+   -- 3 is a 5 segment value and is the only 5 segment value that shares the
+   -- segments of a 1
+   let three = permuteFind 5 one xs5
+   let xs6 = dropStrings [three] xs5
+
+   -- 5 is a 5 segment value and is the only 5 seg value that has all the
+   -- segments from a 4 except for 1
+   let five = getFive (head xs6) (last xs6) four
+   let xs7 = dropStrings [five] xs6
+
+   -- 2 is the only value left
+   let two = head xs7
+
+   [
+      ('0', permutations zero),
+      ('1', permutations one),
+      ('2', permutations two),
+      ('3', permutations three),
+      ('4', permutations four),
+      ('5', permutations five),
+      ('6', permutations six),
+      ('7', permutations seven),
+      ('8', permutations eight),
+      ('9', permutations nine)
+      ]
+
+decode :: [String] -> [(Char, [String])] -> Int
+decode outputs decoder = read $ aux outputs
+   where
+      aux :: [String] -> [Char]
+      aux [] = []
+      aux (output:outputs) = (fst $ head $ filter (\x -> output `elem` (snd x)) decoder) : (aux outputs)
 
 solve1 :: [[[String]]] -> Int
 solve1 [] = 0
@@ -68,10 +109,7 @@ solve1 (x:xs) = (aux x) + (solve1 xs)
 
 solve2 :: [[[String]]] -> Int
 solve2 [] = 0
-solve2 (x:xs) = (aux x) + (solve2 xs)
-    where
-        aux (_:output:[]) = (length $ filter isUniqueSize output)
-        aux _ = error "Invalid input"
+solve2 ((input:output:[]):xs) = (decode output (find' input)) + solve2 xs
 
 main :: IO ()
 main = do
