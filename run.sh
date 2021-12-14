@@ -16,7 +16,7 @@ for makefile in $(find . -name Makefile | sort); do
         continue;
     fi
 
-    make -C "$dir"
+    make -C "$dir" || exit
 done
 
 for main in $(find . -name main | sort); do
@@ -37,6 +37,6 @@ for main in $(find . -name main | sort); do
     echo "$year - $day"
     echo "==========================="
     cd "$dir"
-    ./main
+    time ./main
     cd - > /dev/null
 done
