@@ -21,9 +21,7 @@ getPathsFrom2 point visited allPaths
       visitedHas2SmallCaves = 1 < if visitedCounts == [] then 0 else (maximum $ visitedCounts)
 
 newInputList :: [[String]] -> [String] -> [[String]]
-newInputList input@(current:rest) [] = rest
-newInputList input@(current:rest) (path:[]) = ((current ++ [path]) : rest)
-newInputList input@(current:rest) (path:paths) = newInputList (input ++ [current ++ [path]]) paths
+newInputList input paths = foldl' (\acc path -> ((head input) ++ [path]) : acc) (drop 1 input) paths
 
 getPaths :: Int -> [[String]] -> Map.Map String [String] -> Int
 getPaths _ [] _ = 0
