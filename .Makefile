@@ -3,4 +3,4 @@ all:
 timeAnalysis: clean
 	ghc -O2 --make main.hs -prof -fprof-auto && time ./main +RTS -p && notify-send "Time Analysis" "Complete" && nvim main.prof
 clean:
-	rm *.hi *.o main *.prof
+	rm -f *.hi *.o main *.prof
