@@ -1,12 +1,6 @@
 import Data.Maybe
 import Data.List
 
-openingOf :: Char -> Char
-openingOf ')' = '('
-openingOf ']' = '['
-openingOf '}' = '{'
-openingOf '>' = '<'
-
 closingOf :: Char -> Char
 closingOf '(' = ')'
 closingOf '[' = ']'
@@ -34,7 +28,7 @@ syntaxCheck = aux ""
       aux stack [] = (stack, Nothing)
       aux stack (char:rest)
          | isOpening = aux (char : stack) rest
-         | (openingOf char) == head stack = aux (tail stack) rest
+         | char == (closingOf $ head stack) = aux (tail stack) rest
          | otherwise = (stack, Just char)
          where
             isOpening = char `elem` "([{<"
