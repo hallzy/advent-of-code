@@ -1,18 +1,16 @@
 import Data.List
-import Debug.Trace
 
--- First 3 Bits
 type Version = Int
 type TypeID = Int
 type LiteralVal = Int
 type LengthTypeID = Int
+type BitsUsed = Int
 
-type LiteralValPacket = (Version, TypeID, LiteralVal)
+type LiteralPacket = (Version, TypeID, LiteralVal, BitsUsed)
 
-type OperatorPacket = (Version, TypeID, LengthTypeID, [Packet])
+type OperatorPacket = (Version, TypeID, LengthTypeID, BitsUsed, [Packet])
 
-data Packet = LiteralValPacket LiteralValPacket | OperatorPacket OperatorPacket deriving Show
--- type Packet = Either LiteralValPacket OperatorPacket
+data Packet = LiteralPacket LiteralPacket | OperatorPacket OperatorPacket deriving Show
 
 char2str :: Char -> String
 char2str = (: [])
@@ -46,10 +44,10 @@ hex2binChar _   = ""
 hex2bin :: String -> String
 hex2bin = concatMap hex2binChar
 
-getLiteralPacket :: String -> (LiteralValPacket, Int)
+getLiteralPacket :: String -> LiteralPacket
 getLiteralPacket str
-   | typeID /= 4 = ((-1, -1, -1), 0)
-   | otherwise = ((version, typeID, literal), bitsUsed)
+   | typeID /= 4 = (-1, -1, -1, 0)
+   | otherwise = (version, typeID, literal, bitsUsed)
    where
       (version, typeID, remaining) = getCommonStuff str
 
@@ -57,7 +55,7 @@ getLiteralPacket str
       len = length literalStr
       literal = bin2int literalStr
 
-      bitsUsed = (len + (len `div` 4))
+      bitsUsed = 6 + (len + (len `div` 4))
 
       getLiteral :: String -> String
       getLiteral remaining
@@ -69,33 +67,43 @@ getLiteralPacket str
 
             rest = drop 5 remaining
 
--- type OperatorPacket = (Version, TypeID, LengthTypeID, [LiteralValPacket])
-getOperatorPacket :: String -> (OperatorPacket, Int)
-getOperatorPacket "" = error "wtf"
+getOperatorPacket :: String -> OperatorPacket
+getOperatorPacket "" = error "Trying to get an operator packet from an empty string"
 getOperatorPacket str
-   | typeID == 4 = ((-1, -1, -1, []), 0)
-   | otherwise = ((version, typeID, lengthTypeID, literals), bitsUsed)
+   | typeID == 4 = (-1, -1, -1, 0, [])
+   | lengthTypeID == 0 = (version, typeID, lengthTypeID, bitsUsed15, literals15)
+   | otherwise = (version, typeID, lengthTypeID, bitsUsed11, literals11)
    where
       (version, typeID, remaining) = getCommonStuff str
 
       lengthTypeID = bin2int $ take 1 remaining
       leftOver1 = drop 1 remaining
 
-      -- TODO: 11 isn't actually the length of the subpackets length, it is the
-      -- number of packets, so I need separate handling for 11
       subpacketsLengthLength = if lengthTypeID == 1 then 11 else 15
 
-      subpacketsLength = bin2int $ take subpacketsLengthLength leftOver1
+      -- For lengthTypeID == 0
+      subpacketsLength15 = bin2int $ take 15 leftOver1
+      leftOver15_2 = drop 15 leftOver1
+      subpackets15 = take subpacketsLength15 leftOver15_2
+      leftOver15_3 = drop subpacketsLength15 leftOver15_2
+      bitsUsed15 = 6 + 1 + 15 + (sum $ getBitsUsed literals15)
+      literals15 = parse (-1) True subpackets15
 
-      leftOver2 = drop subpacketsLengthLength leftOver1
+      -- For lengthTypeID == 1
+      numSubpackets11 = bin2int $ take 11 leftOver1
+      leftOver11_2 = drop 11 leftOver1
+      bitsUsed11 = 6 + 1 + 11 + (sum $ getBitsUsed literals11)
+      literals11 = parse numSubpackets11 True leftOver11_2
 
-      subpackets = take subpacketsLength leftOver2
+getBitsUsed :: [Packet] -> [BitsUsed]
+getBitsUsed [] = []
+getBitsUsed ((LiteralPacket (_, _, _, used)):packets) = used : getBitsUsed packets
+getBitsUsed ((OperatorPacket (_, _, _, used, _)):packets) = used : getBitsUsed packets
 
-      leftOver3 = drop subpacketsLength leftOver2
-
-      bitsUsed = 1 + (length leftOver1) - (length leftOver3)
-
-      literals = parse True subpackets
+getVersions :: [Packet] -> [Version]
+getVersions [] = []
+getVersions ((LiteralPacket (version, _, _, _)):packets) = version : getVersions packets
+getVersions ((OperatorPacket (version, _, _, _, subPackets)):packets) = version : getVersions (subPackets ++ packets)
 
 getCommonStuff :: String -> (Version, TypeID, String)
 getCommonStuff str = (version, typeID, remainingString)
@@ -104,36 +112,61 @@ getCommonStuff str = (version, typeID, remainingString)
       typeID = bin2int $ take 3 $ drop 3 str
       remainingString = drop 6 str
 
+operate :: [Packet] -> [Int]
+operate [] = []
+operate (LiteralPacket (_, _, value, _):packets) = value : operate packets
+operate (OperatorPacket (_, operatorType, _, _, subPackets):packets)
+   | isSum     = sum (operate subPackets) : operate packets
+   | isProduct = product (operate subPackets) : operate packets
+   | isMinimum = minimum (operate subPackets) : operate packets
+   | isMaximum = maximum (operate subPackets) : operate packets
+   | isGT      = (if (operate $ [head subPackets]) > (operate $ [last subPackets]) then 1 else 0) : operate packets
+   | isLT      = (if (operate $ [head subPackets]) < (operate $ [last subPackets]) then 1 else 0) : operate packets
+   | isEQ      = (if (operate $ [head subPackets]) == (operate $ [last subPackets]) then 1 else 0) : operate packets
+   | otherwise = error $ "Invalid Operator Type: " ++ (show operatorType)
+   where
+      isSum     = operatorType == 0
+      isProduct = operatorType == 1
+      isMinimum = operatorType == 2
+      isMaximum = operatorType == 3
+      -- Operator Type 4 is a literal value, so ignore
+      isGT      = operatorType == 5
+      isLT      = operatorType == 6
+      isEQ      = operatorType == 7
+
 roundUpToNearestMultipleOf8 val = 8 - (val `mod` 8)
 
-trace' val = trace (show val) val
-
-parse :: Bool -> String -> [Packet]
-parse isInsideOperator bin = aux bin
+parse :: Int -> Bool -> String -> [Packet]
+parse count isInsideOperator bin = aux count bin
    where
-      aux :: String -> [Packet]
-      aux bin
+      aux :: Int -> String -> [Packet]
+      aux count bin
          | bin == []        = []
-         | isLiteralPacket  = (LiteralValPacket literalPacket) : (aux (drop (literalTotalBitsUsed + literalBitsLeftUnused) bin))
-         | otherwise        = (OperatorPacket operatorPacket) : (aux (drop (operatorTotalBitsUsed + operatorBitsLeftUnused) bin))
+         | count == 0       = []
+         | isLiteralPacket  = (LiteralPacket literalPacket) : (aux (count - 1) (drop (literalTotalBitsUsed + literalBitsLeftUnused) bin))
+         | otherwise        = (OperatorPacket operatorPacket) : (aux (count -1) (drop (operatorTotalBitsUsed + operatorBitsLeftUnused) bin))
          where
-            (_, typeID, _) = getCommonStuff (trace' bin)
+            (_, typeID, _) = getCommonStuff bin
 
             isLiteralPacket = typeID == 4
 
-            (literalPacket, literalBitsUsed) = getLiteralPacket bin
-            literalTotalBitsUsed = literalBitsUsed + 6
+            literalPacket@(_, _, _, literalBitsUsed) = getLiteralPacket bin
+            literalTotalBitsUsed = literalBitsUsed
             literalBitsLeftUnused = if isInsideOperator then 0 else roundUpToNearestMultipleOf8 literalTotalBitsUsed
 
-            (operatorPacket, operatorBitsUsed) = getOperatorPacket bin
-            operatorTotalBitsUsed = operatorBitsUsed + 6
-            operatorBitsLeftUnused = roundUpToNearestMultipleOf8 operatorTotalBitsUsed
+            operatorPacket@(_, _, _, operatorBitsUsed, _) = getOperatorPacket bin
+            operatorTotalBitsUsed = operatorBitsUsed
+            operatorBitsLeftUnused = if isInsideOperator then 0 else roundUpToNearestMultipleOf8 operatorTotalBitsUsed
 
-solve :: String -> String
-solve = show . parse False . hex2bin
+solve1 :: String -> String
+solve1 = show . sum . getVersions . parse (-1) False . hex2bin
+
+solve2 :: String -> String
+solve2 = show . head . operate . parse (-1) False . hex2bin
 
 main :: IO ()
 main = do
    contents <- readFile "input.txt"
    let input = contents
-   putStrLn $ "Part 1: " ++ (solve input)
+   putStrLn $ "Part 1: " ++ (solve1 input)
+   putStrLn $ "Part 2: " ++ (solve2 input)
