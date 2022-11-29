@@ -1,1 +1,3 @@
-# AoC 2020
+# 2020
+
+All Haskell

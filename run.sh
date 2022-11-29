@@ -3,40 +3,31 @@
 userYear="$1"
 userDay="$2"
 
+cwd="$(pwd)"
+
+prefix=''
+if [ -n "$userYear" ]; then
+    cd "$userYear"
+fi
+
+if [ -n "$userDay" ]; then
+    cd "$userDay"
+fi
+
+echo "Building..."
+echo ""
 for makefile in $(find . -name Makefile | sort); do
     dir="$(dirname "$makefile")"
-    dirdir="$(dirname "$dir")"
-    day="$(basename "$dir")"
-    year="$(basename "$dirdir")"
-
-    if [ -n "$userYear" ] && [ "$userYear" -ne "$year" ]; then
-        continue;
-    fi
-    if [ -n "$userDay" ] && [ "$userDay" -ne "$day" ]; then
-        continue;
-    fi
-
-    make -C "$dir" || exit
+    make -C "$dir" build > /dev/null || exit 42
 done
 
-for main in $(find . -name main | sort); do
-    dir="$(dirname "$main")"
-    dirdir="$(dirname "$dir")"
-    day="$(basename "$dir")"
-    year="$(basename "$dirdir")"
-
-    if [ -n "$userYear" ] && [ "$userYear" -ne "$year" ]; then
-        continue;
-    fi
-    if [ -n "$userDay" ] && [ "$userDay" -ne "$day" ]; then
-        continue;
-    fi
+echo "Running..."
+echo ""
+for makefile in $(find . -name Makefile | sort); do
+    dir="$(dirname "$makefile")"
 
     printf "\n\n"
-
-    echo "$year - $day"
     echo "==========================="
-    cd "$dir"
-    time ./main
-    cd - > /dev/null
+
+    time make -C "$dir" run
 done

@@ -1,5 +1,7 @@
-all:
+build:
 	ghc -O2 main.hs
+run:
+	./main
 timeAnalysis: clean
 	ghc -O2 --make main.hs -prof -fprof-auto && time ./main +RTS -p && notify-send "Time Analysis" "Complete" && nvim main.prof
 clean:

@@ -1,0 +1,45 @@
+	Thu Dec 23 21:49 2021 Time and Allocation Profiling Report  (Final)
+
+	   main +RTS -p -RTS
+
+	total time  =        0.02 secs   (21 ticks @ 1000 us, 1 processor)
+	total alloc =     385,384 bytes  (excludes profiling overheads)
+
+COST CENTRE     MODULE           SRC                     %time %alloc
+
+playPlayerPart2 Main             main.hs:27:1-133         90.5   31.5
+aux             Main             main.hs:(31,1)-(40,45)    9.5   27.2
+CAF             GHC.IO.Handle.FD <entire-module>           0.0    9.0
+part2Rolls      Main             main.hs:(22,1)-(24,74)    0.0   15.5
+nextSquare      Main             main.hs:5:1-63            0.0    3.5
+main            Main             main.hs:(64,1)-(69,47)    0.0    7.5
+aux.nextScore1  Main             main.hs:39:7-45           0.0    2.9
+
+
+                                                                                              individual      inherited
+COST CENTRE                  MODULE                 SRC                    no.     entries  %time %alloc   %time %alloc
+
+MAIN                         MAIN                   <built-in>             115          0    0.0    0.7   100.0  100.0
+ CAF                         Main                   <entire-module>        229          0    0.0    0.2   100.0   81.7
+  main                       Main                   main.hs:(64,1)-(69,47) 230          1    0.0    0.3   100.0   65.3
+   solve2                    Main                   main.hs:61:1-102       232          1    0.0    0.0   100.0   65.0
+    playPlayerPart2          Main                   main.hs:27:1-133       233        836   90.5   31.5   100.0   65.0
+     aux                     Main                   main.hs:(31,1)-(40,45) 236     608821    9.5   27.2     9.5   33.5
+      aux.nextPlayer1        Main                   main.hs:36:7-52        238        835    0.0    0.0     0.0    3.5
+       nextSquare            Main                   main.hs:5:1-63         239        835    0.0    3.5     0.0    3.5
+      aux.nextScore1         Main                   main.hs:39:7-45        237        835    0.0    2.9     0.0    2.9
+      aux.nextPlayer2        Main                   main.hs:37:7-52        242          1    0.0    0.0     0.0    0.0
+       nextSquare            Main                   main.hs:5:1-63         243          1    0.0    0.0     0.0    0.0
+      aux.nextScore2         Main                   main.hs:40:7-45        241          1    0.0    0.0     0.0    0.0
+     playPlayerPart2.\       Main                   main.hs:27:67-82       240     608819    0.0    0.0     0.0    0.0
+  part2Rolls                 Main                   main.hs:(22,1)-(24,74) 234          1    0.0   15.5     0.0   16.2
+   part2Rolls.possibleCombos Main                   main.hs:24:7-74        235          1    0.0    0.7     0.0    0.7
+ CAF                         GHC.Conc.Signal        <entire-module>        224          0    0.0    0.2     0.0    0.2
+ CAF                         GHC.IO.Encoding        <entire-module>        215          0    0.0    0.9     0.0    0.9
+ CAF                         GHC.IO.Encoding.Iconv  <entire-module>        213          0    0.0    0.1     0.0    0.1
+ CAF                         GHC.IO.Exception       <entire-module>        207          0    0.0    0.3     0.0    0.3
+ CAF                         GHC.IO.Handle.FD       <entire-module>        205          0    0.0    9.0     0.0    9.0
+ CAF                         GHC.TopHandler         <entire-module>        183          0    0.0    0.0     0.0    0.0
+ CAF                         System.Posix.Internals <entire-module>        178          0    0.0    0.0     0.0    0.0
+ CAF                         GHC.IO.FD              <entire-module>        144          0    0.0    0.0     0.0    0.0
+ main                        Main                   main.hs:(64,1)-(69,47) 231          0    0.0    7.2     0.0    7.2

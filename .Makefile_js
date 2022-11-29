@@ -1,0 +1,8 @@
+build:
+	echo "Nothing to build for JS"
+run:
+	node main.js
+timeAnalysis: clean
+	echo "No time Anaylysis for JS"
+clean:
+	echo "Nothing to clean with JS"
