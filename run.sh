@@ -22,7 +22,6 @@ for makefile in $(find . -name Makefile | sort); do
 done
 
 echo "Running..."
-echo ""
 for makefile in $(find . -name Makefile | sort); do
     dir="$(dirname "$makefile")"
 
